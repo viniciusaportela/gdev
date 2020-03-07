@@ -6,9 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "bin": {
-    "godot-cpp": "godot-cpp-cli.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/viniciusaportela/godot-cpp-cli.git"
@@ -21,6 +18,7 @@
   },
   "homepage": "https://github.com/viniciusaportela/godot-cpp-cli#readme",
   "dependencies": {
+    "axios": "^0.19.2",
     "chalk": "^3.0.0",
     "clear": "^0.1.0",
     "cli-table": "^0.3.1",

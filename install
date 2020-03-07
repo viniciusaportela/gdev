@@ -1,0 +1,9 @@
+#!/bin/bash
+LOCAL=$(pwd)
+GODOTCPPCLIDIR=$(pwd)
+
+echo 'export PATH="'$LOCAL'/bin:$PATH"' >> ~/.bashrc
+echo 'export GODOTCPPCLIDIR="'$GODOTCPPCLIDIR'"' >> ~/.bashrc
+chmod u+x ../godot-cpp-cli
+
+source ~/.bashrc
