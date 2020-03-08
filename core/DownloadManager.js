@@ -1,13 +1,13 @@
-let inquirer = require('inquirer');
-let fs = require('fs');
-let chalk = require('chalk');
-let axios = require('axios');
-let request = require('request')
-let Progress = require('cli-progress')
-let Spinner = require('clui').Spinner
-let join = require('path').join
-let extract = require('extract-zip')
-let Cache = require('./Cache');
+const inquirer = require('inquirer');
+const fs = require('fs');
+const axios = require('axios');
+const request = require('request')
+const Progress = require('cli-progress')
+const Spinner = require('clui').Spinner
+let colors = require('colors')
+const join = require('path').join
+const extract = require('extract-zip')
+const Cache = require('./Cache');
 
 class DownloadManager {
 
@@ -19,7 +19,8 @@ class DownloadManager {
 
       if (cache[branch] === 'complete') {
         //Already downloaded, and unzipped
-        console.log(`📀 Already in Cache`);
+        console.log(colors.yellow('> Already in Cache  '));
+
         return;
       } else if (cache[branch] === 'downloaded') {
         //Need unzip
@@ -94,7 +95,7 @@ class DownloadManager {
           downloadSpinner.stop()
         }
 
-        console.log(`${chalk.green('🗸')} Downloaded Godot Source`);
+        console.log(colors.green('🗸 Downloaded Godot Source '));
         Cache.set('godot', branch, 'downloaded');
         resolve()
       })
@@ -109,7 +110,7 @@ class DownloadManager {
         err => {
           if (err) reject();
 
-          console.log(`${chalk.green('🗸')} Godot Unzipped`);
+          console.log('🗸 Godot Unzipped ');
           Cache.set('godot', branch, 'complete');
           resolve();
         });

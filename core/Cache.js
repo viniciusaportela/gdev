@@ -1,5 +1,5 @@
-let fs = require('fs');
-let join = require('path').join;
+const fs = require('fs');
+const join = require('path').join;
 
 class Cache {
   static set(file, category, value) {

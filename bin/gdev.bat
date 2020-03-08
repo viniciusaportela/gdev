@@ -1,1 +1,0 @@
-node "%GDEV%\gdev.js"

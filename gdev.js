@@ -1,24 +1,23 @@
-let inquirer = require('inquirer');
-let clear = require('clear');
-let chalk = require('chalk');
-let figlet = require('figlet');
-let fs = require('fs');
-let join = require('path').join
-let ncp = require('ncp').ncp
-let clui = require('clui');
+const inquirer = require('inquirer');
+const clear = require('clear');
+const figlet = require('figlet');
+const fs = require('fs');
+const join = require('path').join;
+const ncp = require('ncp').ncp;
+const colors = require('colors');
+const clui = require('clui');
+const shell = require('shelljs');
+const pressAnyKey = require('press-any-key');
 
-let Dependency = require('./core/Dependency');
-let Godot = require('./core/Godot');
-let DownloadManager = require('./core/DownloadManager');
-let Cache = require('./core/Cache');
-
-//TODO: gdcpp, godot-cpp-cli, gdcli, gdev / gddev / gd-dev
+const Dependency = require('./core/Dependency');
+const Godot = require('./core/Godot');
+const DownloadManager = require('./core/DownloadManager');
+const Cache = require('./core/Cache');
 
 class GDev {
 
   constructor() {
     this.os = process.platform
-    this.lastMessage = null
   }
 
   async start() {
@@ -31,23 +30,19 @@ class GDev {
 
   async menu() {
     clear()
-
-    console.log(chalk.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })))
-    if (this.lastMessage) {
-      console.log(this.lastMessage);
-      this.lastMessage = null;
-    }
+    
+    console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })))
 
     let answer = await inquirer.prompt([{
       type: 'list',
-      message: 'What do you want to do now?',
+      message: 'What do you want to do?',
       name: 'menu',
       choices: [
         'Start a CPP Module',
         'Start a GDNative CPP Project',
         'Compile a CPP Module',
-        'Compile a GDNative Module',
-        'Clean Cache',
+        'Watch a GDNative Module (Compile at Every Change)',
+        'Clean GDev Cache',
         new inquirer.Separator(),
         'Exit'
       ]
@@ -65,16 +60,16 @@ class GDev {
           this.compileCpp()
         }
 
-        case 'Compile a GDNative Module': {
+        case 'Watch a GDNative Module (Compile at Every Change)': {
           this.compileGNative()
         }
 
-        case 'Clean Cache': {
+        case 'Clean GDev Cache': {
           Cache.clean();
         }
 
-        //Don't need for exit, since after finishing the question, there's nothing to do
-        //So the program automatically closes
+        // Don't need for exit, since after finishing the question, there's nothing to do
+        // So the program automatically closes
       }
     })
   }
@@ -82,15 +77,15 @@ class GDev {
   async cppModule() {
     let answers = await inquirer.prompt([
       {
+        name: "moduleName",
+        type: "input",
+        message: "Name of your module (folder):",
+      },
+      {
         name: "branch",
         type: "list",
         message: "Which Version of Godot you would like to use?",
         choices: await DownloadManager.getGodotBranches()
-      },
-      {
-        name: "moduleName",
-        type: "input",
-        message: "Name of your module (folder):",
       },
     ])
 
@@ -116,7 +111,9 @@ class GDev {
       )
     ))();
 
-    console.log(`${chalk.green('🗸')} Files Copied`);
+    spinner.stop()
+    console.log(colors.green('🗸 Files Copied '));
+    spinner.start()
 
     // Create Module
     spinner.message('Creating Module');
@@ -131,21 +128,27 @@ class GDev {
     fs.copyFileSync(join(__dirname, './default/register_types.cpp'), `${destination}/modules/${moduleName}/register_types.cpp`);
 
     // Last Step, Rename Some Files Content
+    let regex = new RegExp(/\?/, 'gm');
+
     let header = fs.readFileSync(`${destination}/modules/${moduleName}/register_types.h`, 'utf-8');
-    header.replace(/(\?)/gm, moduleName)
-    //TODO: Save File
-    
+    header = header.replace(regex, moduleName);
+    fs.writeFileSync(`${destination}/modules/${moduleName}/register_types.h`, header);
+
+    regex.lastIndex = 0
+
     let cpp = fs.readFileSync(`${destination}/modules/${moduleName}/register_types.cpp`, 'utf-8');
-    cpp.replace(/(\?)/gm, moduleName)
-
-    spinner.stop();
-
-    //TODO: Change to "press any key to continue"
-    this.lastMessage = `${chalk.green('🗸 Module Created Successfully ')}\n`;
+    cpp = cpp.replace(regex, moduleName);
+    fs.writeFileSync(`${destination}/modules/${moduleName}/register_types.cpp`, cpp);
+    
+    console.log(`${colors.green('🗸 Module Created Successfully ')}`);
 
     // Open VSCode
+    shell.exec(`code ${destination}`, { silent: true })
 
-    this.menu();
+    // Setup .vscode configuration
+    spinner.stop();
+    await pressAnyKey('Press any key to continue');
+    await this.menu();
   }
 
   async gdnative() {
