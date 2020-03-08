@@ -1,83 +1,118 @@
-
-
 let inquirer = require('inquirer');
 let fs = require('fs');
+let chalk = require('chalk');
 let axios = require('axios');
 let request = require('request')
 let Progress = require('cli-progress')
 let Spinner = require('clui').Spinner
 let join = require('path').join
+let extract = require('extract-zip')
+let Cache = require('./Cache');
 
 class DownloadManager {
 
-  static async downloadGodot() {
-    let answer = await inquirer.prompt([{
-      name: "branch",
-      type: "list",
-      message: "Which Version of Godot you would like to use?",
-      choices: await this.getGodotBranches()
-    }])
-
-    // Check has cache
-    if (fs.existsSync('./cache/godot.json')) {
+  static async downloadGodot(branch) {
+    // Check if has cache
+    if (fs.existsSync(join(__dirname, '../cache/godot.json'))) {
       // Check if Godot was already downloaded
-    }
-    
-    // Start Download
-    let downloadProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
-    downloadProgress.start(1, 0)
-    let downloadSpinner = new Spinner('Downloaded 0 bytes', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'])
-    let downloaded = 0
-    
-    //TODO: Make Function to verify all dirs at once
-    if (!fs.existsSync(join(__dirname, '../cache')))
-      fs.mkdirSync(join(__dirname, '../cache'))
-    if (!fs.existsSync(join(__dirname, '../cache/godot')))
-      fs.mkdirSync(join(__dirname, '../cache/godot'))
-    if (!fs.existsSync(join(__dirname, `../cache/godot/${answer.branch}`)))
-      fs.mkdirSync(join(__dirname, `../cache/godot/${answer.branch}`))
-    
-    //TODO: Can't ctrl+c during the process (windows)
-    let output = fs.createWriteStream(join(__dirname, `../cache/godot/${answer.branch}/download.zip`));
-    let req = request({
-      method: 'GET',
-      uri: `https://github.com/godotengine/godot/archive/${answer.branch}.zip`
-    })
-    
-    req.pipe(output)
+      let cache = require('../cache/godot.json');
 
-    //Setup Listeners
-    req.on('response', data => {
-      if(data.headers['content-length']){
-        //TODO: Not receiving content-lenght
-        downloadProgress.setTotal(data.headers['content-length'])
-      }else{
-        downloadProgress.stop()
-        downloadProgress = undefined
-
-        // See ANSII -> CSI, first move one line upper, then delete line
-        process.stdout.write("\u001b[1F");
-        process.stdout.write("\u001b[2K");
-
-        downloadSpinner.start()
-      }
-    })
-
-    req.on('data', chunk => {
-      downloaded += chunk.length
-      if (downloadProgress){
-        downloadProgress.update(downloaded)
-      }else{
-        downloadSpinner.message(`Downloaded ${downloaded} Bytes`)
-      }
-    })
-
-    req.on('end', _ => {
-      if(downloadProgress){
-        downloadProgress.stop()
+      if (cache[branch] === 'complete') {
+        //Already downloaded, and unzipped
+        console.log(`📀 Already in Cache`);
+        return;
+      } else if (cache[branch] === 'downloaded') {
+        //Need unzip
+        await this.unzip(branch);
       } else {
-        downloadSpinner.stop()
+        //Has nothing or incomplete
+        await this.startDownload(branch);
+        await this.unzip(branch);
       }
+    } else {
+      await this.startDownload(branch);
+      await this.unzip(branch);
+    }
+  }
+
+  //TODO: Can't ctrl+c during the process (windows)
+  static startDownload(branch) {
+    return new Promise((resolve, reject) => {
+      // Start Download
+      Cache.set('godot', branch, 'incomplete')
+
+      let downloadProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
+      let downloadSpinner = new Spinner('Downloaded 0 bytes', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'])
+      let downloaded = 0
+
+      //TODO: Make Function to verify all dirs at once
+      if (!fs.existsSync(join(__dirname, '../cache')))
+        fs.mkdirSync(join(__dirname, '../cache'))
+      if (!fs.existsSync(join(__dirname, '../cache/godot')))
+        fs.mkdirSync(join(__dirname, '../cache/godot'))
+      if (!fs.existsSync(join(__dirname, `../cache/godot/${branch}`)))
+        fs.mkdirSync(join(__dirname, `../cache/godot/${branch}`))
+
+      let output = fs.createWriteStream(join(__dirname, `../cache/godot/${branch}/download.zip`));
+
+      let req = request({
+        method: 'GET',
+        uri: `https://github.com/godotengine/godot/archive/${branch}.zip`
+      })
+
+      req.pipe(output)
+
+      //Setup Listeners
+      req.on('response', data => {
+        if (data.headers['content-length']) {
+          //TODO: Not receiving content-lenght
+          downloadProgress.start(data.headers['content-length'], 0)
+        } else {
+          downloadProgress = undefined
+
+          // See ANSII -> CSI, first move one line upper, then delete line
+          //process.stdout.write("\u001b[1F");
+          //process.stdout.write("\u001b[2K");
+
+          downloadSpinner.start()
+        }
+      })
+
+      req.on('data', chunk => {
+        downloaded += chunk.length
+        if (downloadProgress) {
+          downloadProgress.update(downloaded)
+        } else {
+          downloadSpinner.message(`Downloaded ${downloaded} Bytes`)
+        }
+      })
+
+      req.on('end', _ => {
+        if (downloadProgress) {
+          downloadProgress.stop()
+        } else {
+          downloadSpinner.stop()
+        }
+
+        console.log(`${chalk.green('🗸')} Downloaded Godot Source`);
+        Cache.set('godot', branch, 'downloaded');
+        resolve()
+      })
+    });
+  }
+
+  static unzip(branch) {
+    return new Promise((resolve, reject) => {
+      extract(
+        join(__dirname, `../cache/godot/${branch}/download.zip`),
+        { dir: join(__dirname, `../cache/godot/${branch}/`) },
+        err => {
+          if (err) reject();
+
+          console.log(`${chalk.green('🗸')} Godot Unzipped`);
+          Cache.set('godot', branch, 'complete');
+          resolve();
+        });
     })
   }
 

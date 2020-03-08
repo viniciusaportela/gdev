@@ -4,6 +4,6 @@ GODOTCPPCLIDIR=$(pwd)
 
 echo 'export PATH="'$LOCAL'/bin:$PATH"' >> ~/.bashrc
 echo 'export GODOTCPPCLIDIR="'$GODOTCPPCLIDIR'"' >> ~/.bashrc
-chmod u+x ../godot-cpp-cli
+chmod u+x ./bin/gdev
 
 source ~/.bashrc

@@ -1,8 +1,8 @@
 {
-  "name": "godot-cpp-cli",
+  "name": "gdev",
   "version": "1.0.0",
   "description": "",
-  "main": "godot-cpp-cli.js",
+  "main": "gdev.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,9 +25,11 @@
     "cli-table": "^0.3.1",
     "clui": "^0.3.6",
     "commander": "^4.1.1",
+    "extract-zip": "^1.6.7",
     "figlet": "^1.3.0",
     "inquirer": "^7.0.6",
     "minimist": "^1.2.0",
+    "ncp": "^2.0.0",
     "node-cmd": "^3.0.0",
     "request": "^2.88.2",
     "shelljs": "^0.8.3"

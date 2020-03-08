@@ -1,1 +1,0 @@
-node "%GODOTCPPCLIDIR%\godot-cpp-cli.js"
