@@ -1,7 +1,7 @@
-let inquirer = require('inquirer')
-let clear = require('clear')
-let chalk = require('chalk')
-let figlet = require('figlet')
+let inquirer = require('inquirer');
+let clear = require('clear');
+let chalk = require('chalk');
+let figlet = require('figlet');
 
 let Dependency = require('./core/Dependency')
 let Godot = require('./core/Godot')
