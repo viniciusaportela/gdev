@@ -10,6 +10,7 @@ let clui = require('clui');
 let Dependency = require('./core/Dependency');
 let Godot = require('./core/Godot');
 let DownloadManager = require('./core/DownloadManager');
+let Cache = require('./core/Cache');
 
 //TODO: gdcpp, godot-cpp-cli, gdcli, gdev / gddev / gd-dev
 
@@ -58,6 +59,18 @@ class GDev {
 
         case 'Start a GDNative CPP Project': {
           this.gdnative()
+        }
+
+        case 'Compile a CPP Module': {
+          this.compileCpp()
+        }
+
+        case 'Compile a GDNative Module': {
+          this.compileGNative()
+        }
+
+        case 'Clean Cache': {
+          Cache.clean();
         }
 
         //Don't need for exit, since after finishing the question, there's nothing to do
@@ -120,12 +133,15 @@ class GDev {
     // Last Step, Rename Some Files Content
     let header = fs.readFileSync(`${destination}/modules/${moduleName}/register_types.h`, 'utf-8');
     header.replace(/(\?)/gm, moduleName)
+    //TODO: Save File
     
     let cpp = fs.readFileSync(`${destination}/modules/${moduleName}/register_types.cpp`, 'utf-8');
     cpp.replace(/(\?)/gm, moduleName)
 
     spinner.stop();
-    this.lastMessage = `${chalk.green('🗸 Module Created Successfully')}\n`;
+
+    //TODO: Change to "press any key to continue"
+    this.lastMessage = `${chalk.green('🗸 Module Created Successfully ')}\n`;
 
     // Open VSCode
 
@@ -134,6 +150,14 @@ class GDev {
 
   async gdnative() {
     // Create .vscode configuration for C/C++ Plugin
+  }
+
+  async compileCpp() {
+
+  }
+
+  async compileGNative() {
+
   }
 
 }

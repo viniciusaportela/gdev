@@ -1,9 +1,14 @@
 #!/bin/bash
-LOCAL=$(pwd)
-GODOTCPPCLIDIR=$(pwd)
+GDEV=$(pwd)
 
-echo 'export PATH="'$LOCAL'/bin:$PATH"' >> ~/.bashrc
-echo 'export GODOTCPPCLIDIR="'$GODOTCPPCLIDIR'"' >> ~/.bashrc
+echo 'export PATH="'$GDEV'/bin:$PATH"' >> ~/.bashrc
+echo 'export GDEV="'$GDEV'"' >> ~/.bashrc
 chmod u+x ./bin/gdev
 
 source ~/.bashrc
+
+{
+  node -v
+} || {
+  echo "Node not installed"
+}

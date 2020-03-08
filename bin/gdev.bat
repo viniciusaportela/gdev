@@ -1,1 +1,1 @@
-node "%GODOTCPPCLIDIR%\gdev.js"
+node "%GDEV%\gdev.js"

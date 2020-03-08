@@ -20,6 +20,10 @@ class Cache {
 
   }
 
+  static clean() {
+    
+  }
+
   static createCache() {
     if (!fs.existsSync(join(__dirname, '../cache')))
       fs.mkdirSync(join(__dirname, '../cache'))
