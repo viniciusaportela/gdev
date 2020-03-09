@@ -4,14 +4,15 @@
 #include "core/reference.h"
 
 class Base : public Reference {
-  GDCLASS(Base, Reference);
+	GDCLASS(Base, Reference);
 
-  protected:
-    static void _bind_methods();
-  
-  public:
-    Base();
-    ~Base();
-}
+protected:
+	static void _bind_methods();
+
+public:
+	int printer() const;
+
+	Base();
+};
 
 #endif

@@ -1,10 +1,11 @@
 #include "base.h"
 
-void Base::_bind_methods()
-{
-  //Base::bind_method(D_METHOD("add", "value"), &Base::add);
+int Base::printer() const {
+	return 200;
+}
+
+void Base::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("printer"), &Base::printer);
 }
 
 Base::Base() {}
-
-Base::~Base() {}

@@ -50,22 +50,27 @@ class GDev {
       switch (answer.menu) {
         case 'Start a CPP Module': {
           this.cppModule()
+          break;
         }
 
         case 'Start a GDNative CPP Project': {
           this.gdnative()
+          break;
         }
 
         case 'Compile a CPP Module': {
           this.compileCpp()
+          break;
         }
 
         case 'Watch a GDNative Module (Compile at Every Change)': {
           this.compileGNative()
+          break;
         }
 
         case 'Clean GDev Cache': {
           Cache.clean();
+          break;
         }
 
         // Don't need for exit, since after finishing the question, there's nothing to do
@@ -134,7 +139,7 @@ class GDev {
     header = header.replace(regex, moduleName);
     fs.writeFileSync(`${destination}/modules/${moduleName}/register_types.h`, header);
 
-    regex.lastIndex = 0
+    regex.lastIndex = 0;
 
     let cpp = fs.readFileSync(`${destination}/modules/${moduleName}/register_types.cpp`, 'utf-8');
     cpp = cpp.replace(regex, moduleName);
@@ -143,9 +148,13 @@ class GDev {
     console.log(`${colors.green('🗸 Module Created Successfully ')}`);
 
     // Open VSCode
-    shell.exec(`code ${destination}`, { silent: true })
+    shell.exec(`code ${destination}`, { silent: true });
+    process.chdir(`./${destination}`)
 
     // Setup .vscode configuration
+    // ...
+
+    // Finished
     spinner.stop();
     await pressAnyKey('Press any key to continue');
     await this.menu();
@@ -156,7 +165,11 @@ class GDev {
   }
 
   async compileCpp() {
-
+    if(this.os === 'win32') {
+      shell.exec('scons platform=windows');
+    }else{
+      console.log('not supported yet');
+    }
   }
 
   async compileGNative() {
