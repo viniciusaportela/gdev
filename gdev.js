@@ -18,6 +18,7 @@ class GDev {
 
   constructor() {
     this.os = process.platform
+    this.runningProcesses = []
   }
 
   async start() {
@@ -32,6 +33,7 @@ class GDev {
     clear()
     
     console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })))
+    console.log(colors.blue('DIR: '), process.cwd() + '\n');
 
     let answer = await inquirer.prompt([{
       type: 'list',
@@ -69,7 +71,7 @@ class GDev {
         }
 
         case 'Clean GDev Cache': {
-          Cache.clean();
+          this.cleanCache();
           break;
         }
 
@@ -149,10 +151,26 @@ class GDev {
 
     // Open VSCode
     shell.exec(`code ${destination}`, { silent: true });
-    process.chdir(`./${destination}`)
+    process.chdir(`./${destination}`);
 
     // Setup .vscode configuration
-    // ...
+    fs.mkdirSync('.vscode');
+    let config = fs.readFileSync(join(__dirname, './default/c_cpp_properties.windows.json'), 'utf-8');
+    
+    let configRegex = new RegExp(/\^\?\^/, 'gm');
+    //TODO: Separate
+    config = (() => {
+      let path = require('path').resolve(`./`);
+
+      if (this.os === 'win32'){  
+        let regex = new RegExp(/\\/, 'gm');
+        return config.replace(configRegex, path.replace(regex, '\\\\') + '\\\\**')
+      }else{
+        return config.replace(configRegex, path + '/**')
+      }
+    })();
+    
+    fs.writeFileSync('./.vscode/c_cpp_properties.json', config);
 
     // Finished
     spinner.stop();
@@ -162,6 +180,7 @@ class GDev {
 
   async gdnative() {
     // Create .vscode configuration for C/C++ Plugin
+    await this.menu()
   }
 
   async compileCpp() {
@@ -170,10 +189,17 @@ class GDev {
     }else{
       console.log('not supported yet');
     }
+
+    await this.menu()
   }
 
   async compileGNative() {
+    await this.menu()
+  }
 
+  async cleanCache() {
+    Cache.clean();
+    await this.menu();
   }
 
 }

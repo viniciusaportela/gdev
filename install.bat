@@ -6,7 +6,7 @@ echo Starting Installation ...
 setx GDEV "%~dp0
 setx path "%GDEV%bin;%path%"
 
-command >nul 2>nul && (
+node -v >nul 2>nul && (
   echo Executing gdev ...
   node "%GDEV%gdev"
   exit
