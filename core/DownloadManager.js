@@ -1,13 +1,14 @@
 const inquirer = require('inquirer');
 const fs = require('fs');
 const axios = require('axios');
-const request = require('request')
-const Progress = require('cli-progress')
-const Spinner = require('clui').Spinner
-let colors = require('colors')
-const join = require('path').join
-const extract = require('extract-zip')
+const request = require('request');
+const Progress = require('cli-progress');
+const Spinner = require('clui').Spinner;
+const colors = require('colors');
+const join = require('path').join;
+const extract = require('extract-zip');
 const Cache = require('./Cache');
+const { createDirs } = require('./utils');
 
 class DownloadManager {
 
@@ -24,85 +25,71 @@ class DownloadManager {
         return;
       } else if (cache[branch] === 'downloaded') {
         //Need unzip
-        await this.unzip(branch);
+        await this.unzipGodot(branch);
       } else {
         //Has nothing or incomplete
-        await this.startDownload(branch);
-        await this.unzip(branch);
+        await this.startDownloadGodot(branch);
+        await this.unzipGodot(branch);
       }
     } else {
-      await this.startDownload(branch);
-      await this.unzip(branch);
+      await this.startDownloadGodot(branch);
+      await this.unzipGodot(branch);
     }
   }
 
   //TODO: Can't ctrl+c during the process (windows)
-  static startDownload(branch) {
-    return new Promise((resolve, reject) => {
+  static startDownloadGodot(branch) {
+    return new Promise(async (resolve, reject) => {
       // Start Download
-      Cache.set('godot', branch, 'incomplete')
+      Cache.set('godot', branch, 'incomplete');
 
       let downloadProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
-      let downloadSpinner = new Spinner('Downloaded 0 bytes', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'])
-      let downloaded = 0
+      let downloadSpinner = new Spinner('Downloaded 0 bytes', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+      let downloaded = 0;
+      
+      createDirs(join(__dirname, `../cache/godot/${branch}`));
 
-      //TODO: Make Function to verify all dirs at once
-      if (!fs.existsSync(join(__dirname, '../cache')))
-        fs.mkdirSync(join(__dirname, '../cache'))
-      if (!fs.existsSync(join(__dirname, '../cache/godot')))
-        fs.mkdirSync(join(__dirname, '../cache/godot'))
-      if (!fs.existsSync(join(__dirname, `../cache/godot/${branch}`)))
-        fs.mkdirSync(join(__dirname, `../cache/godot/${branch}`))
+      await this.download(
+        `https://github.com/godotengine/godot/archive/${branch}.zip`,
+        join(__dirname, `../cache/godot/${branch}/download.zip`),
+        {
+          on_start: data => {
+            if (data.headers['content-length']) {
+              //TODO: Not receiving content-lenght
+              downloadProgress.start(data.headers['content-length'], 0)
+            } else {
+              downloadProgress = undefined
+              downloadSpinner.start()
+            }
+          },
+          on_data: chunk => {
+            downloaded += chunk.length
+            if (downloadProgress) {
+              downloadProgress.update(downloaded)
+            } else {
+              downloadSpinner.message(`Downloaded ${downloaded} Bytes`)
+            }
+          },
+          on_finish: _ => {
+            if (downloadProgress) {
+              downloadProgress.stop()
+            } else {
+              downloadSpinner.stop()
+            }
 
-      let output = fs.createWriteStream(join(__dirname, `../cache/godot/${branch}/download.zip`));
-
-      let req = request({
-        method: 'GET',
-        uri: `https://github.com/godotengine/godot/archive/${branch}.zip`
-      })
-
-      req.pipe(output)
-
-      //Setup Listeners
-      req.on('response', data => {
-        if (data.headers['content-length']) {
-          //TODO: Not receiving content-lenght
-          downloadProgress.start(data.headers['content-length'], 0)
-        } else {
-          downloadProgress = undefined
-
-          // See ANSII -> CSI, first move one line upper, then delete line
-          //process.stdout.write("\u001b[1F");
-          //process.stdout.write("\u001b[2K");
-
-          downloadSpinner.start()
+            console.log(colors.green('🗸 Downloaded Godot Source '));
+            Cache.set('godot', branch, 'downloaded');
+            resolve();
+          },
         }
-      })
-
-      req.on('data', chunk => {
-        downloaded += chunk.length
-        if (downloadProgress) {
-          downloadProgress.update(downloaded)
-        } else {
-          downloadSpinner.message(`Downloaded ${downloaded} Bytes`)
-        }
-      })
-
-      req.on('end', _ => {
-        if (downloadProgress) {
-          downloadProgress.stop()
-        } else {
-          downloadSpinner.stop()
-        }
-
-        console.log(colors.green('🗸 Downloaded Godot Source '));
-        Cache.set('godot', branch, 'downloaded');
-        resolve()
-      })
+      );
     });
   }
 
-  static unzip(branch) {
+  static unzipGodot(branch) {
+    const unzipSpinner = new Spinner('Unzipping Godot Source', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+    unzipSpinner.start();
+
     return new Promise((resolve, reject) => {
       extract(
         join(__dirname, `../cache/godot/${branch}/download.zip`),
@@ -110,16 +97,156 @@ class DownloadManager {
         err => {
           if (err) reject();
 
-          console.log('🗸 Godot Unzipped ');
+          unzipSpinner.stop();
+          console.log(colors.green('🗸 Godot Unzipped '));
           Cache.set('godot', branch, 'complete');
           resolve();
         });
     })
   }
 
+  static async downloadGodotCpp() {
+    //Check for cache
+    let status = Cache.get('godotcpp', 'status');
+    
+    if (status === 'complete' || status === 'downloaded') {
+      console.log(colors.yellow('> Godot CPP already in Cache'));
+    }
+
+    Cache.set('godotcpp', 'status', 'incomplete');
+
+    createDirs(join(__dirname, '../cache/godotcpp/master'));
+    
+    const godotCppSpinner = new Spinner('Downloading GodotCPP', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+    let godotCppProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
+    let downloaded = 0;
+
+    //TODO: Repeats, create function -> downloadWithProgress
+    //Download GodotCPP Source
+    await (async () => {
+      return new Promise((resolve, reject) => {
+        this.download(
+          'https://github.com/GodotNativeTools/godot-cpp/archive/master.zip',
+          join(__dirname, '../cache/godotcpp/master/download.zip'),
+          {
+            on_start: data => {
+              if (data.headers['content-length']) {
+                //TODO: Not receiving content-lenght
+                godotCppSpinner.start(data.headers['content-length'], 0)
+              } else {
+                godotCppProgress = undefined
+                godotCppSpinner.start()
+              }
+            },
+            on_data: chunk => {
+              downloaded += chunk.length
+              if (godotCppProgress) {
+                godotCppProgress.update(downloaded)
+              } else {
+                godotCppSpinner.message(`Downloaded ${downloaded} Bytes`)
+              }
+            },
+            on_finish: _ => {
+              if (godotCppProgress) {
+                godotCppProgress.stop()
+              } else {
+                godotCppSpinner.stop()
+              }
+
+              console.log(colors.green('🗸 Downloaded Godot CPP '));
+              Cache.set('godotcpp', 'status', 'downloaded');
+              resolve();
+            },
+          }
+        )
+      });
+    })();
+  }
+
+  static async downloadGodotHeaders() {
+    //Check for cache
+    let status = Cache.get('godotheaders', 'status');
+
+    if (status === 'complete' || status === 'downloaded') {
+      console.log(colors.yellow('> Godot Headers already in Cache'));
+    }
+
+    Cache.set('godotheaders', 'status', 'incomplete');
+
+    createDirs(join(__dirname, '../cache/godotheaders/master'));
+
+    const godotCppSpinner = new Spinner('Downloading Godot Headers', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+    let godotCppProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
+    let downloaded = 0;
+
+    await (async () => {
+      godotCppProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
+
+      return new Promise((resolve, reject) => {
+        this.download(
+          'https://github.com/GodotNativeTools/godot_headers/archive/master.zip',
+          join(__dirname, '../cache/godotheaders/master/download.zip'),
+          {
+            on_start: data => {
+              if (data.headers['content-length']) {
+                //TODO: Not receiving content-lenght
+                godotCppSpinner.start(data.headers['content-length'], 0)
+              } else {
+                godotCppProgress = undefined
+                godotCppSpinner.start()
+              }
+            },
+            on_data: chunk => {
+              downloaded += chunk.length
+              if (godotCppProgress) {
+                godotCppProgress.update(downloaded)
+              } else {
+                godotCppSpinner.message(`Downloaded ${downloaded} Bytes`)
+              }
+            },
+            on_finish: _ => {
+              if (godotCppProgress) {
+                godotCppProgress.stop()
+              } else {
+                godotCppSpinner.stop()
+              }
+
+              console.log(colors.green('🗸 Downloaded Godot Headers '));
+              Cache.set('godotheaders', 'status', 'downloaded');
+              resolve();
+            },
+          }
+        )
+      });
+    })();
+  }
+
   static async getGodotBranches() {
     var res = await axios.get('https://api.github.com/repos/godotengine/godot/branches')
     return res.data.map(branch => (branch.name))
+  }
+
+  static async download(url, output_path, { on_start, on_data, on_finish }) {
+    return new Promise((resolve, reject) => {
+      let output = fs.createWriteStream(output_path);
+
+      let req = request({
+        method: 'GET',
+        uri: url
+      })
+
+      req.pipe(output)
+
+      //Setup Listeners
+      req.on('response', data => on_start(data))
+
+      req.on('data', chunk => on_data(chunk))
+
+      req.on('end', _ => {
+        on_finish();
+        resolve();
+      })
+    });
   }
 
 }

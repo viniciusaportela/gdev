@@ -1,8 +1,20 @@
 const fs = require('fs');
 const join = require('path').join;
 
+/**
+ * @class Cache
+ * 
+ * Manage Cache Requests and Saves
+ */
 class Cache {
-  static set(file, category, value) {
+
+  /**
+   * Set a value in Cache
+   * @param {String} file - Pathname to file, to save
+   * @param {*} key - Key inside file
+   * @param {*} value - value to given key
+   */
+  static set(file, key, value) {
     this.createCache();
     let cache;
 
@@ -12,18 +24,25 @@ class Cache {
       cache = require(join(__dirname, `../cache/${file}.json`));
     }
 
-    cache[category] = value
+    cache[key] = value
     fs.writeFileSync(join(__dirname, `../cache/${file}.json`), JSON.stringify(cache));
   }
 
-  static get() {
-
+  static get(file, key) {
+    if(fs.existsSync(join(__dirname, `../cache/${file}.json`))) {
+      return require(join(__dirname, `../cache/${file}.json`))[key]
+    } else {
+      return undefined;
+    }
   }
 
   static clean() {
     
   }
 
+  /**
+   * Create cache folder if doesn't exists yet
+   */
   static createCache() {
     if (!fs.existsSync(join(__dirname, '../cache')))
       fs.mkdirSync(join(__dirname, '../cache'))

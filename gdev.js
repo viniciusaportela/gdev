@@ -44,9 +44,9 @@ class GDev {
         'Start a GDNative CPP Project',
         'Compile a CPP Module',
         'Watch a GDNative Module (Compile at Every Change)',
-        'Clean GDev Cache',
+        //TODO: Clean Cache
         new inquirer.Separator(),
-        'Exit'
+        'Exit',
       ]
     }]).then(answer => {
       switch (answer.menu) {
@@ -66,8 +66,8 @@ class GDev {
         }
 
         case 'Watch a GDNative Module (Compile at Every Change)': {
-          this.compileGNative()
-          break;
+          this.watchGDnative()
+          break;2
         }
 
         case 'Clean GDev Cache': {
@@ -94,7 +94,7 @@ class GDev {
         message: "Which Version of Godot you would like to use?",
         choices: await DownloadManager.getGodotBranches()
       },
-    ])
+    ]);
 
     // Download Godot Source
     await DownloadManager.downloadGodot(answers.branch)
@@ -158,7 +158,7 @@ class GDev {
     let config = fs.readFileSync(join(__dirname, './default/c_cpp_properties.windows.json'), 'utf-8');
     
     let configRegex = new RegExp(/\^\?\^/, 'gm');
-    //TODO: Separate
+    //TODO: Create Function for this
     config = (() => {
       let path = require('path').resolve(`./`);
 
@@ -179,8 +179,34 @@ class GDev {
   }
 
   async gdnative() {
-    // Create .vscode configuration for C/C++ Plugin
-    await this.menu()
+    let answers = await inquirer.prompt([
+      {
+        name: "projectName",
+        type: "input",
+        message: "Name of your project (folder):",
+      },
+    ]);
+
+    await DownloadManager.downloadGodotCpp();
+    await DownloadManager.downloadGodotHeaders();
+
+    // Unzip
+    
+    // Bindings
+
+    // Create Module
+
+    // Create Godot Project
+
+    // Copy Default Files (+gdnlib, +gdns)
+
+    // Compile
+
+    // Open Godot Project
+
+    // Open VSCODE
+
+    await this.menu();
   }
 
   async compileCpp() {
@@ -190,16 +216,30 @@ class GDev {
       console.log('not supported yet');
     }
 
-    await this.menu()
+    await this.menu();
   }
 
-  async compileGNative() {
-    await this.menu()
+  async watchGDnative() {
+    await this.menu();
   }
 
   async cleanCache() {
     Cache.clean();
     await this.menu();
+  }
+
+  // Scripts
+
+  async runScript() {
+
+  }
+
+  async addScript() {
+
+  }
+
+  async createScript() {
+
   }
 
 }
