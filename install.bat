@@ -2,19 +2,28 @@
 echo Starting Installation ...
 
 ::Setup Env Variables
-::npm install --save
 setx GDEV "%~dp0
 setx path "%GDEV%bin;%path%"
 
-node -v >nul 2>nul && (
+::Check for Scoop
+where scoop >nul 2>nul && (
+  ::Install all dependencies
+  echo Installing all needed dependencies
+  scoop install nodejs gcc python scons yasm make
+
+  echo Installing Node Project Dependencies ...
+  npm install --save
   echo Executing gdev ...
   node "%GDEV%gdev"
-  exit
 ) || (
-  echo Node wasn't found, trying to download ...
+  ::Install all dependencies
+  echo scoop not found, installing it!
+  powershell -Command "Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')"
+  echo Installing all needed dependencies
+  scoop install nodejs gcc python scons yasm make
 
-  powershell -Command "Invoke-WebRequest https://nodejs.org/dist/v12.16.1/node-v12.16.1-x64.msi -OutFile 'C:\Users\Vinicius Araujo\Downloads\node.msi'"
-  "C:\Users\Vinicius Araujo\Downloads\node.msi"
+  echo Installing Node Project Dependencies ...
+  npm install --save
   echo Executing gdev ...
   node "%GDEV%gdev"
 )

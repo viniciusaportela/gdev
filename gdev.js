@@ -10,7 +10,6 @@ const shell = require('shelljs');
 const pressAnyKey = require('press-any-key');
 
 const Dependency = require('./core/Dependency');
-const Godot = require('./core/Godot');
 const DownloadManager = require('./core/DownloadManager');
 const Cache = require('./core/Cache');
 const { createDirs, copyFolder } = require('./core/utils');
@@ -18,35 +17,37 @@ const { createDirs, copyFolder } = require('./core/utils');
 class GDev {
 
   constructor() {
-    this.os = process.platform
-    this.runningProcesses = []
+    this.os = process.platform;
+    this.curMenu;
+    this.runningProcesses = [];
   }
 
   async start() {
-    let argv = require('minimist')(process.argv)
+    let argv = require('minimist')(process.argv);
 
-    await Dependency.check()
+    await Dependency.check();
 
     await this.menu()
   }
 
   async menu() {
-    clear()
+    clear();
 
-    console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })))
+    console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })));
     console.log(colors.blue('DIR: '), process.cwd() + '\n');
 
-    let answer = await inquirer.prompt([{
+    inquirer.prompt([{
       type: 'list',
       message: 'What do you want to do?',
       name: 'menu',
       choices: [
         'Start a CPP Module',
-        'Start a GDNative CPP Project',
         'Compile a CPP Module',
+        'Start a GDNative CPP Project',
         'Watch a GDNative Module (Compile at Every Change)',
         //TODO: Clean Cache
         new inquirer.Separator(),
+        'Change Working Dir',
         'Exit',
       ]
     }]).then(answer => {
@@ -76,10 +77,28 @@ class GDev {
           break;
         }
 
+        case 'Change Working Dir': {
+          this.changeDir();
+          break;
+        }
+
         // Don't need for exit, since after finishing the question, there's nothing to do
         // So the program automatically closes
       }
-    })
+    });
+  }
+
+  async changeDir() {
+    clear();
+
+    let ans = await inquirer.prompt({
+      name: 'dir',
+      type: 'input',
+      message: 'Change current working dir to:'
+    });
+
+    process.chdir(ans.dir);
+    await this.menu();
   }
 
   async cppModule() {
@@ -128,12 +147,12 @@ class GDev {
     fs.mkdirSync(`./${destination}/modules/${moduleName}`);
 
     // Copy Default Files
-    fs.copyFileSync(join(__dirname, './default/SCsub'), `${destination}/modules/${moduleName}/SCsub`);
-    fs.copyFileSync(join(__dirname, './default/config.py'), `${destination}/modules/${moduleName}/config.py`);
-    fs.copyFileSync(join(__dirname, './default/base.h'), `${destination}/modules/${moduleName}/base.h`);
-    fs.copyFileSync(join(__dirname, './default/base.cpp'), `${destination}/modules/${moduleName}/base.cpp`);
-    fs.copyFileSync(join(__dirname, './default/register_types.h'), `${destination}/modules/${moduleName}/register_types.h`);
-    fs.copyFileSync(join(__dirname, './default/register_types.cpp'), `${destination}/modules/${moduleName}/register_types.cpp`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/SCsub'), `${destination}/modules/${moduleName}/SCsub`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/config.py'), `${destination}/modules/${moduleName}/config.py`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/base.h'), `${destination}/modules/${moduleName}/base.h`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/base.cpp'), `${destination}/modules/${moduleName}/base.cpp`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/register_types.h'), `${destination}/modules/${moduleName}/register_types.h`);
+    fs.copyFileSync(join(__dirname, './default/cppmodule/register_types.cpp'), `${destination}/modules/${moduleName}/register_types.cpp`);
 
     // Last Step, Rename Some Files Content
     let regex = new RegExp(/\?/, 'gm');
@@ -156,7 +175,7 @@ class GDev {
 
     // Setup .vscode configuration
     fs.mkdirSync('.vscode');
-    let config = fs.readFileSync(join(__dirname, './default/c_cpp_properties.json'), 'utf-8');
+    let config = fs.readFileSync(join(__dirname, './default/cppmodule/c_cpp_properties.json'), 'utf-8');
 
     let configRegex = new RegExp(/\^\?\^/, 'gm');
     //TODO: Create Function for this
@@ -253,12 +272,11 @@ class GDev {
       // Finally, Compile Bindings
       spinner.start();
       spinner.message('Generating CPP Bindings (3/3)');
-      let arch = require('os').arch();
 
       if (os) {
         let execDir = process.cwd()
         process.chdir(join(__dirname, './cache/gdnative/cpp/master/'))
-        shell.exec(`scons platform=${os} generate_bindings=yes ${arch === 'x64' ? 'bits=64' : null}`)
+        shell.exec(`scons platform=${os} generate_bindings=yes`)
         process.chdir(execDir)
       } else {
         spinner.stop();
@@ -295,24 +313,56 @@ class GDev {
     // Copy Default Files (+gdnlib, +gdns, SConstruct)
     spinner.message('Creating Module (4/5)');
     process.chdir(join(curDir, `./${answers.projectName}`));
-    fs.copyFileSync(join(__dirname, './default/SConstruct'), `./SConstruct`);
+    fs.copyFileSync(join(__dirname, './default/gdnative/SConstruct'), `./SConstruct`);
+    fs.copyFileSync(join(__dirname, './default/gdnative/gdlibrary.cpp'), `./src/gdlibrary.cpp`);
+    fs.copyFileSync(join(__dirname, './default/gdnative/base.cpp'), `./src/base.cpp`);
+    fs.copyFileSync(join(__dirname, './default/gdnative/base.h'), `./src/base.h`);
+
+    spinner.stop();
+    console.log(`${colors.green('🗸 Files Copied')}`);
+    spinner.start();
 
     // Create .vscode
     spinner.message('Creating Module (4/5)');
     fs.mkdirSync('./.vscode');
-    fs.copyFileSync(join(__dirname, './default/c_cpp_properties.gdnative.json'), `./.vscode/c_cpp_properties.json`);
+    let config = fs.readFileSync(join(__dirname, './default/gdnative/c_cpp_properties.json'), 'utf-8');
+
+    let configRegex = new RegExp(/\^\?\^/, 'gm');
+    //TODO: Create Function for this
+    config = (() => {
+      let path = require('path').resolve(`./`);
+
+      if (this.os === 'win32') {
+        let regex = new RegExp(/\\/, 'gm');
+        return config.replace(configRegex, path.replace(regex, '\\\\') + '\\\\**')
+      } else {
+        return config.replace(configRegex, path + '/**')
+      }
+    })();
+
+    fs.writeFileSync('./.vscode/c_cpp_properties.json', config);
 
     // Compile
     spinner.message('Creating Module (5/5)');
     if (os) {
-      spinner.stop();
-      shell.exec(`scons p=${os}`);
-      spinner.start();
+      let scons = shell.exec(`scons p=${os}`, { silent: true });
+      if (scons.code !== 0) {
+        spinner.stop();
+        console.log(colors.red('> Error when running scons!'));
+        console.log(scons.stdout);
+        spinner.start();
+      } else {
+        spinner.stop();
+        console.log(`${colors.green('🗸 Scons Compiled ')}`);
+        spinner.start();
+      }
     }
 
     // Open Godot Editor
     process.chdir(join(curDir, `./${answers.projectName}/godot-project/`));
-    shell.exec('godot -e');
+    if (shell.exec('godot -e', { silent: true }).code !== 0) {
+      console.log(colors.red('godot command not acessable'));
+    }
 
     // Open VSCODE
     process.chdir(join(curDir, `./${answers.projectName}`));

@@ -1,6 +1,10 @@
+const shell = require('shelljs');
+const Cache = require('./Cache');
+const colors = require('colors');
+
 class Dependency {
 
-  static check() {
+  static async check() {
 
   }
 

@@ -7,8 +7,10 @@ chmod u+x ./bin/gdev
 
 source ~/.bashrc
 
-{
-  node -v
-} || {
-  echo "Node not installed"
-}
+# Install Dependencies
+sudo apt install build-essential scons pkg-config libx11-dev libxcursor-dev libxinerama-dev \
+    libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm nodejs -y
+
+# Check for Node
+echo 'Executing gdev ...'
+gdev
