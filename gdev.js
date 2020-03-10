@@ -8,18 +8,19 @@ const colors = require('colors');
 const clui = require('clui');
 const shell = require('shelljs');
 const pressAnyKey = require('press-any-key');
+const watch = require('node-watch');
 
 const Dependency = require('./core/Dependency');
 const DownloadManager = require('./core/DownloadManager');
 const Cache = require('./core/Cache');
-const { createDirs, copyFolder } = require('./core/utils');
+const { createDirs, copyFolder, getOsFromName } = require('./core/utils');
 
 class GDev {
 
   constructor() {
     this.os = process.platform;
-    this.curMenu;
     this.runningProcesses = [];
+    this.watch = []
   }
 
   async start() {
@@ -27,14 +28,17 @@ class GDev {
 
     await Dependency.check();
 
-    await this.menu()
+    this.ui = new inquirer.ui.BottomBar();
+
+    await this.menu();
   }
 
   async menu() {
     clear();
 
     console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })));
-    console.log(colors.blue('DIR: '), process.cwd() + '\n');
+    console.log(colors.blue('DIR: '), process.cwd());
+    this.ui.log.write(`${this.watch.length} running processes ... \n\n`);
 
     inquirer.prompt([{
       type: 'list',
@@ -69,7 +73,7 @@ class GDev {
 
         case 'Watch a GDNative Module (Compile at Every Change)': {
           this.watchGDnative()
-          break; 2
+          break;
         }
 
         case 'Clean GDev Cache': {
@@ -82,23 +86,14 @@ class GDev {
           break;
         }
 
-        // Don't need for exit, since after finishing the question, there's nothing to do
-        // So the program automatically closes
+        case 'Exit': {
+          this.watch.forEach(watcher => {
+            watcher.close();
+          });
+          break;
+        }
       }
     });
-  }
-
-  async changeDir() {
-    clear();
-
-    let ans = await inquirer.prompt({
-      name: 'dir',
-      type: 'input',
-      message: 'Change current working dir to:'
-    });
-
-    process.chdir(ans.dir);
-    await this.menu();
   }
 
   async cppModule() {
@@ -139,7 +134,7 @@ class GDev {
     ))();
 
     spinner.stop()
-    console.log(colors.green('🗸 Files Copied '));
+    console.log(colors.green('✔️ Files Copied '));
     spinner.start()
 
     // Create Module
@@ -167,7 +162,7 @@ class GDev {
     cpp = cpp.replace(regex, moduleName);
     fs.writeFileSync(`${destination}/modules/${moduleName}/register_types.cpp`, cpp);
 
-    console.log(`${colors.green('🗸 Module Created Successfully ')}`);
+    console.log(`${colors.green('✔️ Module Created Successfully ')}`);
 
     // Open VSCode
     shell.exec(`code ${destination}`, { silent: true });
@@ -204,14 +199,7 @@ class GDev {
   async gdnative() {
     let spinner = new clui.Spinner('', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
     let curDir = process.cwd();
-    let os = (() => {
-      let osList = {
-        win32: "windows",
-        linux: "linux"
-      }
-
-      return osList[this.os];
-    })();
+    let os = getOsFromName(this.os);
 
     let answers = await inquirer.prompt([
       {
@@ -258,7 +246,7 @@ class GDev {
             ncp(join(__dirname, './cache/godotheaders/master/godot_headers-master'), join(__dirname, './cache/gdnative/cpp/master/godot_headers'), err => {
               if (err) reject(err);
               spinner.stop();
-              console.log(`${colors.green('🗸 Files Mounted ')}`);
+              console.log(`${colors.green('✔️ Files Mounted ')}`);
               spinner.start();
               resolve();
             })
@@ -274,19 +262,19 @@ class GDev {
       spinner.message('Generating CPP Bindings (3/3)');
 
       if (os) {
-        let execDir = process.cwd()
-        process.chdir(join(__dirname, './cache/gdnative/cpp/master/'))
-        shell.exec(`scons platform=${os} generate_bindings=yes`)
-        process.chdir(execDir)
+        let execDir = process.cwd();
+        process.chdir(join(__dirname, './cache/gdnative/cpp/master/'));
+        shell.exec(`scons platform=${getOsFromName(this.os, 'gdnative')} generate_bindings=yes`);
+        process.chdir(execDir);
       } else {
         spinner.stop();
-        console.log(colors.red('Not support for you system yet (just win32 / linux)'));
+        console.log(colors.red('Not support for you system yet (just windows / linux / bsd)'));
         spinner.start();
       }
 
       spinner.stop();
       Cache.set('gdnative', 'cpp', 'compiled');
-      console.log(`${colors.green('🗸 GDNative CPP Compiled (Next Projects are going to be created much faster)')}`);
+      console.log(`${colors.green('✔️ GDNative CPP Compiled (Next Projects are going to be created much faster)')}`);
     }
 
     // Create Module
@@ -319,7 +307,7 @@ class GDev {
     fs.copyFileSync(join(__dirname, './default/gdnative/base.h'), `./src/base.h`);
 
     spinner.stop();
-    console.log(`${colors.green('🗸 Files Copied')}`);
+    console.log(`${colors.green('✔️ Files Copied')}`);
     spinner.start();
 
     // Create .vscode
@@ -345,7 +333,7 @@ class GDev {
     // Compile
     spinner.message('Creating Module (5/5)');
     if (os) {
-      let scons = shell.exec(`scons p=${os}`, { silent: true });
+      let scons = shell.exec(`scons p=${getOsFromName(this.os, 'gdnative')}`, { silent: true });
       if (scons.code !== 0) {
         spinner.stop();
         console.log(colors.red('> Error when running scons!'));
@@ -353,40 +341,72 @@ class GDev {
         spinner.start();
       } else {
         spinner.stop();
-        console.log(`${colors.green('🗸 Scons Compiled ')}`);
+        console.log(`${colors.green('✔️ Scons Compiled ')}`);
         spinner.start();
       }
     }
 
     // Open Godot Editor
-    process.chdir(join(curDir, `./${answers.projectName}/godot-project/`));
+    /*process.chdir(join(curDir, `./${answers.projectName}/godot-project/`));
     if (shell.exec('godot -e', { silent: true }).code !== 0) {
-      console.log(colors.red('godot command not acessable'));
-    }
+      console.log(colors.red('godot command not in env path'));
+    }*/
 
     // Open VSCODE
     process.chdir(join(curDir, `./${answers.projectName}`));
     shell.exec('code .');
 
-    process.chdir(join(curDir, `./${answers.projectName}/src`));
-
     spinner.stop();
-    console.log(`${colors.green('🗸 GDNative Project Created Successfully! ')}`);
+    console.log(`${colors.green('✔️ GDNative Project Created Successfully! ')}`);
     await pressAnyKey('Press any key to continue ...');
     await this.menu();
   }
 
   async compileCpp() {
-    if (this.os === 'win32') {
-      shell.exec('scons platform=windows');
+    if (['win32', 'linux', 'openbsd', 'freebsd'].includes(this.os)) {
+      shell.exec(`scons p=${getOsFromName(this.os)}`);
+      console.log(`${colors.green('✔️ Godot Compiled ')}`);
+      await pressAnyKey('Press any key to continue ...');
     } else {
-      console.log('not supported yet');
+      console.log(colors.yellow('> not supported for your system yet (just linux/bsd and windows)'));
+      await pressAnyKey('Press any key to continue ...');
     }
 
     await this.menu();
   }
 
   async watchGDnative() {
+    let ans = await inquirer.prompt({
+      name: 'watch',
+      type: 'input',
+      message: 'Directory to watch (/src folder):'
+    });
+
+    if (!fs.existsSync(ans.watch)) {
+      console.log(colors.red("This directory doesn't exists!"));
+    } else {
+      let watcher = watch(ans.watch, { recursive: true }, (evt, name) => {
+        shell.exec(`scons p=${getOsFromName(this.os, 'gdnative')}`, { cwd: join(ans.watch, '../'), silent: false });
+      });
+      this.watch.push(watcher);
+      console.log(colors.green(`Now watching ${this.watch.length} folder(s)`));
+    }
+
+    await pressAnyKey('press any key to continue ...');
+    await this.menu();
+  }
+
+  async changeDir() {
+    clear();
+
+    console.log(colors.blue(figlet.textSync('GDev', { horizontalLayout: 'full' })));
+    let ans = await inquirer.prompt({
+      name: 'dir',
+      type: 'input',
+      message: 'Change current working dir to:'
+    });
+
+    process.chdir(ans.dir);
     await this.menu();
   }
 

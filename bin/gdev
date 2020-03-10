@@ -1,2 +1,2 @@
 #!/bin/bash
-#exec node $GDEV/gdev.js
+exec node $GDEV/gdev.js

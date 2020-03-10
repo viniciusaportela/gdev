@@ -1,6 +1,8 @@
 #!/bin/bash
 GDEV=$(pwd)
 
+# Setup Path
+echo 'Setting PATH ...'
 echo 'export PATH="'$GDEV'/bin:$PATH"' >> ~/.bashrc
 echo 'export GDEV="'$GDEV'"' >> ~/.bashrc
 chmod u+x ./bin/gdev
@@ -8,8 +10,13 @@ chmod u+x ./bin/gdev
 source ~/.bashrc
 
 # Install Dependencies
+echo 'Donwloading Dependencies ...'
 sudo apt install build-essential scons pkg-config libx11-dev libxcursor-dev libxinerama-dev \
     libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm nodejs -y
+
+# Install Node Dependencies
+echo 'Donwloading Node Project Dependencies ...'
+npm install --save
 
 # Check for Node
 echo 'Executing gdev ...'

@@ -1,6 +1,6 @@
 #include "base.h"
 
-void Base::print() const
+void Base::print()
 {
 	print_line("Hello World");
 }

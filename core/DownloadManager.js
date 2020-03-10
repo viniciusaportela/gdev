@@ -46,7 +46,7 @@ class DownloadManager {
       let downloadProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
       let downloadSpinner = new Spinner('Downloaded 0 bytes', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
       let downloaded = 0;
-      
+
       createDirs(join(__dirname, `../cache/godot/${branch}`));
 
       await this.download(
@@ -77,7 +77,7 @@ class DownloadManager {
               downloadSpinner.stop()
             }
 
-            console.log(colors.green('🗸 Downloaded Godot Source '));
+            console.log(colors.green('✔️ Downloaded Godot Source '));
             Cache.set('godot', branch, 'downloaded');
             resolve();
           },
@@ -98,7 +98,7 @@ class DownloadManager {
           if (err) reject();
 
           unzipSpinner.stop();
-          console.log(colors.green('🗸 Godot Unzipped '));
+          console.log(colors.green('✔️ Godot Unzipped '));
           Cache.set('godot', branch, 'complete');
           resolve();
         });
@@ -108,11 +108,11 @@ class DownloadManager {
   static async downloadGodotCpp() {
     //Check for cache
     let status = Cache.get('godotcpp', 'status');
-    
+
     if (status === 'complete') {
       console.log(colors.yellow('> Godot CPP already in Cache'));
       return;
-    }else if(status === 'downloaded'){
+    } else if (status === 'downloaded') {
       await this.unzipGodotCpp();
       return;
     }
@@ -120,7 +120,7 @@ class DownloadManager {
     Cache.set('godotcpp', 'status', 'incomplete');
 
     createDirs(join(__dirname, '../cache/godotcpp/master'));
-    
+
     const godotCppSpinner = new Spinner('Downloading GodotCPP', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
     let godotCppProgress = new Progress.SingleBar({}, Progress.Presets.shades_classic);
     let downloaded = 0;
@@ -157,7 +157,7 @@ class DownloadManager {
                 godotCppSpinner.stop()
               }
 
-              console.log(colors.green('🗸 Downloaded Godot CPP '));
+              console.log(colors.green('✔️ Downloaded Godot CPP '));
               Cache.set('godotcpp', 'status', 'downloaded');
               await this.unzipGodotCpp();
               resolve();
@@ -181,7 +181,7 @@ class DownloadManager {
           if (err) reject();
 
           unzipSpinner.stop();
-          console.log(colors.green('🗸 Godot CPP Unzipped '));
+          console.log(colors.green('✔️ Godot CPP Unzipped '));
           Cache.set('godotcpp', 'status', 'complete');
           resolve();
         });
@@ -240,7 +240,7 @@ class DownloadManager {
                 godotCppSpinner.stop()
               }
 
-              console.log(colors.green('🗸 Downloaded Godot Headers '));
+              console.log(colors.green('✔️ Downloaded Godot Headers '));
               Cache.set('godotheaders', 'status', 'downloaded');
               await this.unzipGodotHeaders();
               resolve();
@@ -263,7 +263,7 @@ class DownloadManager {
           if (err) reject();
 
           unzipSpinner.stop();
-          console.log(colors.green('🗸 Godot Headers Unzipped '));
+          console.log(colors.green('✔️ Godot Headers Unzipped '));
           Cache.set('godotheaders', 'status', 'complete');
           resolve();
         });

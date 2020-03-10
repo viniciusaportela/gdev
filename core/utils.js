@@ -28,7 +28,24 @@ function copyFolder(source, destination) {
   });
 }
 
+function getOsFromName(os, useCase = 'cppmodule') {
+  const osList = ((useCase === 'cppmodule') ? {
+    'win32': 'windows',
+    'linux': 'x11',
+    'openbsd': 'x11',
+    'freebsd': 'x11',
+  } : {
+      'win32': 'windows',
+      'linux': 'linux',
+      'openbsd': 'bsd',
+      'freebsd': 'bsd',
+    })
+
+  return osList[os];
+}
+
 module.exports = {
   createDirs,
   copyFolder,
+  getOsFromName,
 }
