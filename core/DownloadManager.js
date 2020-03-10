@@ -109,8 +109,12 @@ class DownloadManager {
     //Check for cache
     let status = Cache.get('godotcpp', 'status');
     
-    if (status === 'complete' || status === 'downloaded') {
+    if (status === 'complete') {
       console.log(colors.yellow('> Godot CPP already in Cache'));
+      return;
+    }else if(status === 'downloaded'){
+      await this.unzipGodotCpp();
+      return;
     }
 
     Cache.set('godotcpp', 'status', 'incomplete');
@@ -146,7 +150,7 @@ class DownloadManager {
                 godotCppSpinner.message(`Downloaded ${downloaded} Bytes`)
               }
             },
-            on_finish: _ => {
+            on_finish: async _ => {
               if (godotCppProgress) {
                 godotCppProgress.stop()
               } else {
@@ -155,6 +159,7 @@ class DownloadManager {
 
               console.log(colors.green('🗸 Downloaded Godot CPP '));
               Cache.set('godotcpp', 'status', 'downloaded');
+              await this.unzipGodotCpp();
               resolve();
             },
           }
@@ -163,12 +168,36 @@ class DownloadManager {
     })();
   }
 
+  //TODO: Create just unzip(params ...)
+  static unzipGodotCpp() {
+    const unzipSpinner = new Spinner('Unzipping Godot Cpp', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+    unzipSpinner.start();
+
+    return new Promise((resolve, reject) => {
+      extract(
+        join(__dirname, `../cache/godotcpp/master/download.zip`),
+        { dir: join(__dirname, `../cache/godotcpp/master/`) },
+        err => {
+          if (err) reject();
+
+          unzipSpinner.stop();
+          console.log(colors.green('🗸 Godot CPP Unzipped '));
+          Cache.set('godotcpp', 'status', 'complete');
+          resolve();
+        });
+    })
+  }
+
   static async downloadGodotHeaders() {
     //Check for cache
     let status = Cache.get('godotheaders', 'status');
 
-    if (status === 'complete' || status === 'downloaded') {
+    if (status === 'complete') {
       console.log(colors.yellow('> Godot Headers already in Cache'));
+      return;
+    } else if (status === 'downloaded') {
+      await this.unzipGodotHeaders();
+      return;
     }
 
     Cache.set('godotheaders', 'status', 'incomplete');
@@ -204,7 +233,7 @@ class DownloadManager {
                 godotCppSpinner.message(`Downloaded ${downloaded} Bytes`)
               }
             },
-            on_finish: _ => {
+            on_finish: async _ => {
               if (godotCppProgress) {
                 godotCppProgress.stop()
               } else {
@@ -213,12 +242,32 @@ class DownloadManager {
 
               console.log(colors.green('🗸 Downloaded Godot Headers '));
               Cache.set('godotheaders', 'status', 'downloaded');
+              await this.unzipGodotHeaders();
               resolve();
             },
           }
         )
       });
     })();
+  }
+
+  static unzipGodotHeaders() {
+    const unzipSpinner = new Spinner('Unzipping Godot Headers', ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']);
+    unzipSpinner.start();
+
+    return new Promise((resolve, reject) => {
+      extract(
+        join(__dirname, `../cache/godotheaders/master/download.zip`),
+        { dir: join(__dirname, `../cache/godotheaders/master/`) },
+        err => {
+          if (err) reject();
+
+          unzipSpinner.stop();
+          console.log(colors.green('🗸 Godot Headers Unzipped '));
+          Cache.set('godotheaders', 'status', 'complete');
+          resolve();
+        });
+    })
   }
 
   static async getGodotBranches() {

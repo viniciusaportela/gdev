@@ -10,15 +10,25 @@ function createDirs(dir_path) {
 
   let res;
   let cur_path = '';
-  while (res = reg.exec(dir_path)){
+  while (res = reg.exec(dir_path)) {
     cur_path += res[1];
-    //Check for cur_path
     if (!fs.existsSync(cur_path)) {
       fs.mkdirSync(cur_path)
     }
   }
 }
 
+function copyFolder(source, destination) {
+  const ncp = require('ncp');
+  return new Promise((resolve, reject) => {
+    ncp(source, destination, err => {
+      if (err) reject(err);
+      resolve();
+    });
+  });
+}
+
 module.exports = {
-  createDirs
+  createDirs,
+  copyFolder,
 }

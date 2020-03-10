@@ -29,15 +29,24 @@ class Cache {
   }
 
   static get(file, key) {
-    if(fs.existsSync(join(__dirname, `../cache/${file}.json`))) {
+    if (fs.existsSync(join(__dirname, `../cache/${file}.json`))) {
       return require(join(__dirname, `../cache/${file}.json`))[key]
     } else {
       return undefined;
     }
   }
 
+  /**
+   * Create a Dir inside Cache
+   * @param {String} dir_relative_path 
+   */
+  static createDir(dir_relative_path) {
+    let { createDirs } = require('./utils');
+    createDirs(join(__dirname, '../cache/' + dir_relative_path));
+  }
+
   static clean() {
-    
+
   }
 
   /**
