@@ -1,6 +1,6 @@
 # gdev - Godot Developer Helper
 
-Make Godot CPP Custom Module and GDNative CPP Modules easy as never. With this repository you can make all the setup and compilation process in a automatically way.
+Make Godot CPP Custom Module and GDNative CPP Modules setup process easy as never. With this repository you can make all the setup and compilation process in a automatically way.
 
 Currently you can:
 
@@ -14,7 +14,7 @@ Currently you can:
 
 ## Dependencies that are going to be downloaded and installed automatically
 
-At the first, you **don't need to download the dependencies bellow if you're on Windows or Ubuntu based Distro**, the program will search, download and install it for you!
+At the first, **you don't need to download the dependencies bellow if you're on Windows or Ubuntu based Distro**, the program will search, download and install it for you!
 
 - Node
 - scoop (Windows only) (Used to download other dependencies)
@@ -30,9 +30,11 @@ At the first, you **don't need to download the dependencies bellow if you're on 
 2. Inside the downloaded folder
 
 **Windows**
+
 type `install` on cmd
 
 **Ubuntu Based Distros**
+
 type `source ./install` on terminal
 
 ## License
