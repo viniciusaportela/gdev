@@ -1,6 +1,6 @@
 # gdev - Godot Developer Helper
 
-Make Godot CPP Custom Module and GDNative CPP Modules setup process easy as never. With this repository you can make all the setup and compilation process in a automatically way.
+Make Godot CPP Custom Module and GDNative CPP Modules setup process easy as never. With this repository you can make all the setup and compilation process in a automatic way.
 
 Currently you can:
 
